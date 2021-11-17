@@ -13,8 +13,56 @@
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent">
-        <!--TODO: Add the map fragment for the user to select the location-->
 
+        <fragment
+            android:id="@+id/map"
+            android:name="com.google.android.gms.maps.SupportMapFragment"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            tools:context="com.udacity.project4.locationreminders.savereminder.selectreminderlocation.SelecLocationFragment" />
+
+        <TextView
+            android:id="@+id/confirmPOI"
+            android:layout_width="@dimen/button_width_large"
+            android:layout_height="@dimen/button_height_large"
+            android:layout_marginBottom="44dp"
+            android:background="@color/darkPink"
+            android:gravity="center"
+            android:visibility="gone"
+            android:text="@string/confirm_point_of_interest"
+            android:textColor="@color/white"
+            android:textSize="@dimen/text_size_medium"
+            app:layout_constraintBottom_toTopOf="@+id/selectPoint"
+            app:layout_constraintEnd_toStartOf="@+id/discardPOI"
+            app:layout_constraintHorizontal_bias="0.5"
+            app:layout_constraintStart_toStartOf="parent" />
+
+        <TextView
+            android:id="@+id/discardPOI"
+            android:layout_width="@dimen/button_width_small"
+            android:layout_height="@dimen/button_height_large"
+            android:layout_marginBottom="44dp"
+            android:background="@color/darkPink"
+            android:gravity="center"
+            android:visibility="gone"
+            android:text="@string/discard"
+            android:textColor="@color/white"
+            android:textSize="@dimen/text_size_medium"
+            app:layout_constraintBottom_toTopOf="@+id/selectPoint"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.5"
+            app:layout_constraintStart_toEndOf="@+id/confirmPOI" />
+
+        <TextView
+            android:id="@+id/selectPoint"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@color/pastelPink"
+            android:textAlignment="center"
+            android:textColor="@color/darkPink"
+            android:textSize="@dimen/text_size_medium"
+            tools:layout_editor_absoluteY="707dp"
+            app:layout_constraintBottom_toBottomOf="parent"/>
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 </layout>

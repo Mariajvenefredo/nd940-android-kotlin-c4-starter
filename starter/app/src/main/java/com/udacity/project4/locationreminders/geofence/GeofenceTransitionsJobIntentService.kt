@@ -56,8 +56,8 @@ class GeofenceTransitionsJobIntentService : JobIntentService(), CoroutineScope {
                         reminderDTO.title,
                         reminderDTO.description,
                         reminderDTO.location,
-                        reminderDTO.latitude,
-                        reminderDTO.longitude,
+                        reminderDTO.latitude!!,
+                        reminderDTO.longitude!!,
                         reminderDTO.id
                     )
                 )

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     package="com.udacity.project4">
     <!--
          The ACCESS_COARSE/FINE_LOCATION permissions are not required to use
@@ -7,12 +8,16 @@
          location permissions for the 'MyLocation' functionality.
     -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+
     <!--         The BACKGROUND_LOCATION permission is required for geofencing functionality to work on Q+ -->
-    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+    <!--<uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />-->
 
     <uses-permission android:name="android.permission.INTERNET" />
 
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission
+        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        tools:remove="android:maxSdkVersion"/>
 
     <application
         android:name=".MyApp"
@@ -36,14 +41,13 @@
             android:value="@string/google_maps_key" />
 
         <activity android:name=".authentication.AuthenticationActivity">
-        </activity>
-        <activity android:name=".locationreminders.RemindersActivity" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-
+        </activity>
+        <activity android:name=".locationreminders.RemindersActivity" >
         </activity>
         <receiver
             android:name=".locationreminders.geofence.GeofenceBroadcastReceiver"

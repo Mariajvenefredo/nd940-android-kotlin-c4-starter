@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/nav_graph_auth"
+    app:startDestination="@id/registerFragment">
+    <activity
+        android:id="@+id/authActivity"
+        android:name="com.udacity.project4.authentication.AuthenticationActivity"
+        android:label="AuthActivity" />
+    <fragment
+        android:id="@+id/registerFragment"
+        android:name="com.udacity.project4.authentication.RegisterFragment"
+        android:label="RegisterFragment" />
+</navigation>

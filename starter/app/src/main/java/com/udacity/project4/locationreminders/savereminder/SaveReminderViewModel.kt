@@ -1,5 +1,7 @@
 package com.udacity.project4.locationreminders.savereminder
 
+import android.Manifest
+import android.annotation.TargetApi
 import android.app.Application
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
@@ -14,6 +16,24 @@ import kotlinx.coroutines.launch
 
 class SaveReminderViewModel(val app: Application, val dataSource: ReminderDataSource) :
     BaseViewModel(app) {
+    val runningQOrLater =
+        android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q
+
+    @TargetApi(29)
+    val qPermissionList = Pair(
+        Q_PERMISSION_REQUEST_CODE,
+        listOf(
+            Manifest.permission.ACCESS_FINE_LOCATION,
+            Manifest.permission.ACCESS_BACKGROUND_LOCATION
+        )
+    )
+    val beforeQPermissionList = Pair(
+        BEFORE_Q_REQUEST_CODE,
+        listOf(
+            Manifest.permission.ACCESS_FINE_LOCATION
+        )
+    )
+
     val reminderTitle = MutableLiveData<String>()
     val reminderDescription = MutableLiveData<String>()
     val reminderSelectedLocationStr = MutableLiveData<String>()
@@ -36,10 +56,12 @@ class SaveReminderViewModel(val app: Application, val dataSource: ReminderDataSo
     /**
      * Validate the entered data then saves the reminder data to the DataSource
      */
-    fun validateAndSaveReminder(reminderData: ReminderDataItem) {
+    fun validateAndSaveReminder(reminderData: ReminderDataItem) : Boolean{
         if (validateEnteredData(reminderData)) {
             saveReminder(reminderData)
+            return true
         }
+        return false
     }
 
     /**
@@ -67,7 +89,7 @@ class SaveReminderViewModel(val app: Application, val dataSource: ReminderDataSo
     /**
      * Validate the entered data and show error to the user if there's any invalid data
      */
-    fun validateEnteredData(reminderData: ReminderDataItem): Boolean {
+    private fun validateEnteredData(reminderData: ReminderDataItem): Boolean {
         if (reminderData.title.isNullOrEmpty()) {
             showSnackBarInt.value = R.string.err_enter_title
             return false
@@ -78,5 +100,10 @@ class SaveReminderViewModel(val app: Application, val dataSource: ReminderDataSo
             return false
         }
         return true
+    }
+
+    companion object {
+        private const val Q_PERMISSION_REQUEST_CODE = 33
+        private const val BEFORE_Q_REQUEST_CODE = 34
     }
 }
