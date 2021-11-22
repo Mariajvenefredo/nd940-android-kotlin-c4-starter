@@ -3,10 +3,15 @@ package com.udacity.project4.locationreminders.savereminder.selectreminderlocati
 
 import android.Manifest
 import android.annotation.TargetApi
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.content.res.Resources
 import android.location.Location
+import android.net.Uri
 import android.os.Bundle
 import android.os.Looper
+import android.provider.Settings
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.Menu
 import android.view.MenuInflater
@@ -15,7 +20,6 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat.checkSelfPermission
 import androidx.databinding.DataBindingUtil
 import com.google.android.gms.location.FusedLocationProviderClient
@@ -29,8 +33,11 @@ import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.LatLng
+import com.google.android.gms.maps.model.MapStyleOptions
 import com.google.android.gms.maps.model.MarkerOptions
 import com.google.android.gms.maps.model.PointOfInterest
+import com.google.android.material.snackbar.Snackbar
+import com.udacity.project4.BuildConfig
 import com.udacity.project4.R
 import com.udacity.project4.base.BaseFragment
 import com.udacity.project4.base.NavigationCommand
@@ -50,7 +57,6 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
 
     private lateinit var map: GoogleMap
     private lateinit var locationCallback: LocationCallback
-    private var permissionStatus: PermissionStatus =  PermissionStatus.NOT_INITIALIZED
     private lateinit var requestPermissionLauncher: ActivityResultLauncher<String>
     private lateinit var fusedLocationProviderClient: FusedLocationProviderClient
     private lateinit var currentLocation: Location
@@ -63,13 +69,11 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
 
         binding.apply {
             viewModel = _viewModel
-            lifecycleOwner = this@SelectLocationFragment
             selectPoint.text = context?.getText(R.string.select_poi) ?: ""
         }
 
         setHasOptionsMenu(true)
         setDisplayHomeAsUpEnabled(true)
-        requestLocationPermissionsToUser()
 
         val mapFragment = childFragmentManager
             .findFragmentById(R.id.map) as SupportMapFragment
@@ -86,7 +90,7 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
                 if (isGranted) {
                     enableMyLocation()
                 } else {
-                   // _viewModel.navigationCommand.value = NavigationCommand.Back
+                    warningLocationPermissions()
                 }
             }
 
@@ -95,57 +99,6 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
 
         return binding.root
     }
-
-    private fun handleLocationCallback() = object : LocationCallback() {
-        override fun onLocationResult(locationResult: LocationResult) {
-            super.onLocationResult(locationResult)
-            var lastLocation = locationResult.lastLocation
-            if (::currentLocation.isInitialized) {
-                if (currentLocation.latitude != lastLocation.latitude ||
-                    currentLocation.longitude != lastLocation.longitude
-                ) {
-                    currentLocation = locationResult.lastLocation
-                    getCurrentLocation()
-                }
-            } else {
-                currentLocation = locationResult.lastLocation
-                getCurrentLocation()
-            }
-        }
-    }
-
-    private fun requestLocationPermissionsToUser() {
-        val (requestCode, permissions) = if (_viewModel.runningQOrLater) {
-            _viewModel.qPermissionList
-        } else {
-            _viewModel.beforeQPermissionList
-        }
-
-        this.activity?.let {
-            ActivityCompat.requestPermissions(
-                it,
-                permissions.toTypedArray(),
-                requestCode
-            )
-        }
-    }
-
-    private fun onLocationSelected(latLng: LatLng) {
-        val poiName = String.format(
-            Locale.getDefault(),
-            "Lat: %1$.5f, Long: %2$.5f",
-            latLng.latitude,
-            latLng.longitude
-        )
-        val poi = PointOfInterest(latLng, "POI", poiName)
-
-        _viewModel.selectedPOI.value = poi
-        _viewModel.latitude.value = latLng.latitude
-        _viewModel.longitude.value = latLng.longitude
-        _viewModel.reminderSelectedLocationStr.value = poi.name
-        _viewModel.navigationCommand.value = NavigationCommand.Back
-    }
-
 
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
         inflater.inflate(R.menu.map_options, menu)
@@ -176,8 +129,72 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
         map.mapType = GoogleMap.MAP_TYPE_NORMAL
 
         setMapLongClick(map)
-        //setMapStyle(map)
+        setMapStyle(map)
         enableMyLocation()
+    }
+
+    private fun setMapStyle(map: GoogleMap) {
+        try {
+            map.setMapStyle(
+                MapStyleOptions.loadRawResourceStyle(
+                    requireContext(),
+                    R.raw.map_style
+                )
+            )
+
+        } catch (e: Resources.NotFoundException) {
+            Log.e("MAP", "Can't find style. Error: ", e)
+        }
+    }
+
+    private fun warningLocationPermissions() {
+        Snackbar.make(
+            binding.layoutMap,
+            R.string.permission_denied_explanation, Snackbar.LENGTH_INDEFINITE
+        )
+            .setAction(R.string.settings) {
+                startActivity(Intent().apply {
+                    action = Settings.ACTION_APPLICATION_DETAILS_SETTINGS
+                    data = Uri.fromParts("package", BuildConfig.APPLICATION_ID, null)
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                })
+            }
+            .show()
+        _viewModel.navigationCommand.value = NavigationCommand.Back
+    }
+
+    private fun handleLocationCallback() = object : LocationCallback() {
+        override fun onLocationResult(locationResult: LocationResult) {
+            super.onLocationResult(locationResult)
+            var lastLocation = locationResult.lastLocation
+            if (::currentLocation.isInitialized) {
+                if (currentLocation.latitude != lastLocation.latitude ||
+                    currentLocation.longitude != lastLocation.longitude
+                ) {
+                    currentLocation = locationResult.lastLocation
+                    getCurrentLocation()
+                }
+            } else {
+                currentLocation = locationResult.lastLocation
+                getCurrentLocation()
+            }
+        }
+    }
+
+    private fun onLocationSelected(latLng: LatLng) {
+        val poiName = String.format(
+            Locale.getDefault(),
+            "Lat: %1$.5f, Long: %2$.5f",
+            latLng.latitude,
+            latLng.longitude
+        )
+        val poi = PointOfInterest(latLng, "POI", poiName)
+
+        _viewModel.selectedPOI.value = poi
+        _viewModel.latitude.value = latLng.latitude
+        _viewModel.longitude.value = latLng.longitude
+        _viewModel.reminderSelectedLocationStr.value = poi.name
+        _viewModel.navigationCommand.value = NavigationCommand.Back
     }
 
     private fun setMapLongClick(map: GoogleMap) {
@@ -216,6 +233,7 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
     }
 
     private fun enableMyLocation() {
+
         if (checkSelfPermission(
                 this.requireContext(),
                 Manifest.permission.ACCESS_FINE_LOCATION
@@ -253,6 +271,6 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
 
     companion object {
         private const val ZOOM_LEVEL = 15f
-        private const val REQUEST_LOCATION_PERMISSION = 1
     }
 }
+

@@ -28,13 +28,13 @@ class RemindersActivityTest :
     private lateinit var repository: ReminderDataSource
     private lateinit var appContext: Application
 
-    /**
+    /*
      * As we use Koin as a Service Locator Library to develop our code, we'll also use Koin to test our code.
      * at this step we will initialize Koin related code to be able to use it in out testing.
      */
     @Before
     fun init() {
-        stopKoin()//stop the original app koin
+        //stopKoin()//stop the original app koin
         appContext = getApplicationContext()
         val myModule = module {
             viewModel {
@@ -53,11 +53,11 @@ class RemindersActivityTest :
             single { LocalDB.createRemindersDao(appContext) }
         }
         //declare a new koin module
-        startKoin {
-            modules(listOf(myModule))
-        }
+        //startKoin {
+            //modules(listOf(myModule))
+       // }
         //Get our real repository
-        repository = get()
+        //repository = get()
 
         //clear the data to start fresh
         runBlocking {

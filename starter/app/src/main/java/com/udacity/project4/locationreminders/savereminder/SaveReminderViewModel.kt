@@ -20,26 +20,23 @@ class SaveReminderViewModel(val app: Application, val dataSource: ReminderDataSo
         android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q
 
     @TargetApi(29)
-    val qPermissionList = Pair(
-        Q_PERMISSION_REQUEST_CODE,
+    val qPermissionList =
         listOf(
             Manifest.permission.ACCESS_FINE_LOCATION,
             Manifest.permission.ACCESS_BACKGROUND_LOCATION
         )
-    )
-    val beforeQPermissionList = Pair(
-        BEFORE_Q_REQUEST_CODE,
+
+    val beforeQPermissionList =
         listOf(
             Manifest.permission.ACCESS_FINE_LOCATION
         )
-    )
 
-    val reminderTitle = MutableLiveData<String>()
-    val reminderDescription = MutableLiveData<String>()
-    val reminderSelectedLocationStr = MutableLiveData<String>()
-    val selectedPOI = MutableLiveData<PointOfInterest>()
-    val latitude = MutableLiveData<Double>()
-    val longitude = MutableLiveData<Double>()
+    val reminderTitle = MutableLiveData<String?>()
+    val reminderDescription = MutableLiveData<String?>()
+    val reminderSelectedLocationStr = MutableLiveData<String?>()
+    val selectedPOI = MutableLiveData<PointOfInterest?>()
+    val latitude = MutableLiveData<Double?>()
+    val longitude = MutableLiveData<Double?>()
 
     /**
      * Clear the live data objects to start fresh next time the view model gets called
@@ -89,7 +86,7 @@ class SaveReminderViewModel(val app: Application, val dataSource: ReminderDataSo
     /**
      * Validate the entered data and show error to the user if there's any invalid data
      */
-    private fun validateEnteredData(reminderData: ReminderDataItem): Boolean {
+    fun validateEnteredData(reminderData: ReminderDataItem): Boolean {
         if (reminderData.title.isNullOrEmpty()) {
             showSnackBarInt.value = R.string.err_enter_title
             return false
@@ -100,10 +97,5 @@ class SaveReminderViewModel(val app: Application, val dataSource: ReminderDataSo
             return false
         }
         return true
-    }
-
-    companion object {
-        private const val Q_PERMISSION_REQUEST_CODE = 33
-        private const val BEFORE_Q_REQUEST_CODE = 34
     }
 }

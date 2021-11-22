@@ -31,12 +31,12 @@ interface RemindersDao {
      * @param reminder the reminder to be inserted.
      */
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun saveReminder(reminder: ReminderDTO)
+    suspend fun saveReminder(reminder: ReminderDTO) : Long
 
     /**
      * Delete all reminders.
      */
     @Query("DELETE FROM reminders")
-    suspend fun deleteAllReminders()
+    suspend fun deleteAllReminders(): Int
 
 }
