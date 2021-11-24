@@ -94,9 +94,6 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
                 }
             }
 
-
-//        TODO: add style to the map
-
         return binding.root
     }
 

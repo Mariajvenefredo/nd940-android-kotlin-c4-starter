@@ -88,7 +88,7 @@ class SaveReminderFragment : BaseFragment() {
 
     private fun warningLocationPermission() {
         Snackbar.make(
-            binding.layout,
+            binding.saveReminderCLayout,
             R.string.permission_denied_explanation, Snackbar.LENGTH_INDEFINITE
         )
             .setAction(R.string.settings) {
@@ -195,7 +195,7 @@ class SaveReminderFragment : BaseFragment() {
                 }
             } else {
                 Snackbar.make(
-                    binding.layout,
+                    binding.saveReminderCLayout,
                     R.string.location_required_error, Snackbar.LENGTH_INDEFINITE
                 ).setAction(android.R.string.ok) {
                     checkDeviceLocationOn()
