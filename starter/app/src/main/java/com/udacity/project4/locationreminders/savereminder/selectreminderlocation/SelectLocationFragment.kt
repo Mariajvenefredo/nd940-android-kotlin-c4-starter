@@ -70,6 +70,7 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
     private lateinit var currentLocation: Location
     private lateinit var lastMarker: Marker
 
+    @SuppressLint("MissingPermission")
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View {
@@ -97,6 +98,7 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
                 ActivityResultContracts.RequestPermission()
             ) { isGranted: Boolean ->
                 if (isGranted) {
+                    map.isMyLocationEnabled = true
                     turnOnLocationRequest()
                 } else {
                     warningLocationPermissions()
@@ -319,7 +321,6 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
             locationCallback,
             Looper.myLooper()
         )
-        map.isMyLocationEnabled = true
     }
 
     private fun getCurrentLocation() {
