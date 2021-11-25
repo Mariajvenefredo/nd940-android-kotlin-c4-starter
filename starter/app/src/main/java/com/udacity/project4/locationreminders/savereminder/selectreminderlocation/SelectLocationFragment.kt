@@ -2,8 +2,11 @@ package com.udacity.project4.locationreminders.savereminder.selectreminderlocati
 
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.annotation.TargetApi
+import android.app.Activity
 import android.content.Intent
+import android.content.IntentSender
 import android.content.pm.PackageManager
 import android.content.res.Resources
 import android.location.Location
@@ -19,14 +22,17 @@ import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat.checkSelfPermission
 import androidx.databinding.DataBindingUtil
+import com.google.android.gms.common.api.ResolvableApiException
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.LocationSettingsRequest
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
@@ -34,6 +40,7 @@ import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MapStyleOptions
+import com.google.android.gms.maps.model.Marker
 import com.google.android.gms.maps.model.MarkerOptions
 import com.google.android.gms.maps.model.PointOfInterest
 import com.google.android.material.snackbar.Snackbar
@@ -59,7 +66,9 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
     private lateinit var locationCallback: LocationCallback
     private lateinit var requestPermissionLauncher: ActivityResultLauncher<String>
     private lateinit var fusedLocationProviderClient: FusedLocationProviderClient
+    private lateinit var resolutionForResult: ActivityResultLauncher<IntentSenderRequest>
     private lateinit var currentLocation: Location
+    private lateinit var lastMarker: Marker
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
@@ -88,13 +97,54 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
                 ActivityResultContracts.RequestPermission()
             ) { isGranted: Boolean ->
                 if (isGranted) {
-                    enableMyLocation()
+                    turnOnLocationRequest()
                 } else {
                     warningLocationPermissions()
+                    moveCamara(LATLNG_GOOGLE)
                 }
             }
-
+        resolutionForResult =
+            registerForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) { activityResult ->
+                if (activityResult.resultCode == Activity.RESULT_OK) {
+                    checkPermissionsAndEnableMyLocation()
+                } else {
+                    moveCamara(LATLNG_GOOGLE)
+                }
+            }
         return binding.root
+    }
+
+    private fun turnOnLocationRequest() {
+        val locationRequest = LocationRequest.create().apply {
+            priority = LocationRequest.PRIORITY_LOW_POWER
+        }
+        val builder =
+            LocationSettingsRequest.Builder().addLocationRequest(locationRequest)
+
+        val settingsClient = LocationServices.getSettingsClient(this.requireActivity())
+        val locationSettingsResponseTask =
+            settingsClient.checkLocationSettings(builder.build())
+
+        locationSettingsResponseTask.addOnFailureListener { exception ->
+            if (exception is ResolvableApiException) {
+                try {
+                    val intentSenderRequest =
+                        IntentSenderRequest.Builder(exception.resolution).build()
+                    resolutionForResult.launch(intentSenderRequest)
+                } catch (sendEx: IntentSender.SendIntentException) {
+                    Log.d(
+                        "POI_APP",
+                        "Error geting location settings resolution: " + sendEx.message
+                    )
+                }
+            }
+        }
+
+        locationSettingsResponseTask.addOnCompleteListener {
+            if (it.isSuccessful) {
+                trackLocation()
+            }
+        }
     }
 
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
@@ -127,7 +177,7 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
 
         setMapLongClick(map)
         setMapStyle(map)
-        enableMyLocation()
+        checkPermissionsAndEnableMyLocation()
     }
 
     private fun setMapStyle(map: GoogleMap) {
@@ -147,7 +197,7 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
     private fun warningLocationPermissions() {
         Snackbar.make(
             binding.layoutMap,
-            R.string.permission_denied_explanation, Snackbar.LENGTH_INDEFINITE
+            R.string.permission_denied_explanation, Snackbar.LENGTH_SHORT
         )
             .setAction(R.string.settings) {
                 startActivity(Intent().apply {
@@ -157,7 +207,6 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
                 })
             }
             .show()
-        _viewModel.navigationCommand.value = NavigationCommand.Back
     }
 
     private fun handleLocationCallback() = object : LocationCallback() {
@@ -195,26 +244,42 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
     }
 
     private fun setMapLongClick(map: GoogleMap) {
+        map.setOnPoiClickListener { poi ->
+            _viewModel.selectedPOI.value = poi
+            _viewModel.reminderTitle.value = poi.name
+            val latLng = poi.latLng
+
+            map.handleMapClick(latLng)
+        }
         map.setOnMapLongClickListener { latLng ->
+            map.handleMapClick(latLng)
+        }
+    }
 
-            val marker = map.addMarker(
-                MarkerOptions()
-                    .position(latLng)
-                    .title(getString(R.string.dropped_pin))
-                    .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_MAGENTA))
-            )
+    private fun GoogleMap.handleMapClick(latLng: LatLng) {
+        if (::lastMarker.isInitialized) {
+            lastMarker.remove()
+        }
 
-            moveCamara(latLng)
+        lastMarker = addMarker(
+            MarkerOptions()
+                .position(latLng)
+                .title(getString(R.string.dropped_pin))
+                .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_MAGENTA))
+        )
 
-            binding.apply {
-                confirmPOI.setOnClickListener {
-                    onLocationSelected(latLng)
-                }
+        moveCamara(latLng)
 
-                discardPOI.setOnClickListener {
-                    confirmPOI.visibility = View.GONE
-                    discardPOI.visibility = View.GONE
-                    marker.remove()
+        binding.apply {
+            confirmPOI.setOnClickListener {
+                onLocationSelected(latLng)
+            }
+
+            discardPOI.setOnClickListener {
+                confirmPOI.visibility = View.GONE
+                discardPOI.visibility = View.GONE
+                lastMarker.remove()
+                if (::currentLocation.isInitialized) {
                     moveCamara(
                         LatLng(
                             currentLocation.latitude,
@@ -222,14 +287,14 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
                         )
                     )
                 }
-
-                confirmPOI.visibility = View.VISIBLE
-                discardPOI.visibility = View.VISIBLE
             }
+
+            confirmPOI.visibility = View.VISIBLE
+            discardPOI.visibility = View.VISIBLE
         }
     }
 
-    private fun enableMyLocation() {
+    private fun checkPermissionsAndEnableMyLocation() {
 
         if (checkSelfPermission(
                 this.requireContext(),
@@ -239,17 +304,22 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
             requestPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
 
         } else {
-            val locationRequest = LocationRequest()
-                .setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY)
-                .setInterval(10000)
-
-            fusedLocationProviderClient.requestLocationUpdates(
-                locationRequest,
-                locationCallback,
-                Looper.myLooper()
-            )
-            map.isMyLocationEnabled = true
+            turnOnLocationRequest()
         }
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun trackLocation() {
+        val locationRequest = LocationRequest()
+            .setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY)
+            .setInterval(2000)
+
+        fusedLocationProviderClient.requestLocationUpdates(
+            locationRequest,
+            locationCallback,
+            Looper.myLooper()
+        )
+        map.isMyLocationEnabled = true
     }
 
     private fun getCurrentLocation() {
@@ -268,6 +338,9 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
 
     companion object {
         private const val ZOOM_LEVEL = 15f
+        private const val LAT_GOOGLE = 37.42229563649184
+        private const val LNG_GOOGLE = -122.08422917783443
+        private val LATLNG_GOOGLE = LatLng(LAT_GOOGLE, LNG_GOOGLE)
     }
 }
 

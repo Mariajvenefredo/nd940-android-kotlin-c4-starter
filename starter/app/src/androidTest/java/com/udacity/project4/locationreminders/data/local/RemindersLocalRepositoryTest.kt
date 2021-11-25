@@ -83,6 +83,15 @@ class RemindersLocalRepositoryTest {
     }
 
     @Test
+    fun getReminder_ReturnsError() = runBlocking {
+        localDataSource.saveReminder(newReminder)
+
+        val result = localDataSource.getReminder("nonexistent_id")
+
+        assertThat(result).isEqualTo(Result.Error("Reminder not found!"))
+    }
+
+    @Test
     fun saveReminders_deleteReminders() = runBlocking {
         localDataSource.saveReminder(newReminder)
         localDataSource.saveReminder(newReminder2)

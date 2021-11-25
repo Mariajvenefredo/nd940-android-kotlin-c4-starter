@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.udacity.project4.locationreminders.MainCoroutineRule
 import com.udacity.project4.locationreminders.data.FakeDataSource
 import com.udacity.project4.locationreminders.data.dto.ReminderDTO
 import junit.framework.Assert.assertEquals
@@ -36,6 +37,9 @@ class RemindersListViewModelTest {
     @get:Rule
     var instantExecutorRule = InstantTaskExecutorRule()
 
+    @ExperimentalCoroutinesApi
+    @get:Rule
+    var mainCoroutineRule = MainCoroutineRule()
 
     @Before
     fun setupViewModel() {
@@ -69,6 +73,18 @@ class RemindersListViewModelTest {
             assertEquals(addedList[1].latitude, reminderList[1].latitude)
             assertEquals(addedList[1].longitude, reminderList[1].longitude)
         }
+    }
+    @Test
+    fun loadReminders_Loading() {
+        mainCoroutineRule.pauseDispatcher()
+
+        remindersListViewModel.loadReminders()
+
+        assertEquals(remindersListViewModel.showLoading.value, true)
+
+        mainCoroutineRule.resumeDispatcher()
+
+        assertEquals(remindersListViewModel.showLoading.value, false)
     }
 
     @Test

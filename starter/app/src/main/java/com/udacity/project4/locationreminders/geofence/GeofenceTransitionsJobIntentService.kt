@@ -49,19 +49,17 @@ class GeofenceTransitionsJobIntentService() :
              */
             if (geofenceEvent.geofenceTransition == Geofence.GEOFENCE_TRANSITION_ENTER) {
                 val geofences = geofenceEvent.triggeringGeofences
-                //val toRemove = geofences.map { g -> g.requestId }
-                //LocationServices.getGeofencingClient(this).removeGeofences(toRemove)
-                sendNotification(geofences)
+                geofences.forEach { geofence ->
+                    val requestId = geofence.requestId
+                    sendNotification(requestId)
+                }
             }
         }
     }
 
     //TODO: get the request id of the current geofence
-    private fun sendNotification(triggeringGeofences: List<Geofence>) {
-        val requestId = triggeringGeofences.firstOrNull()?.requestId
+    private fun sendNotification(requestId: String?) {
 
-        //Get the local repository instance
-//        Interaction to the repository has to be through a coroutine scope
         CoroutineScope(coroutineContext).launch(SupervisorJob()) {
             //get the reminder with the request id
             if (requestId != null) {
